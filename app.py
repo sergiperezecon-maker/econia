@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 from duckduckgo_search import DDGS
 import os
 from datetime import date
@@ -212,14 +213,21 @@ INSTRUCCIONES:
 
     url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    resp = requests.post(url, json=payload, timeout=30)
-    if not resp.ok:
+
+    for attempt in range(3):
+        resp = requests.post(url, json=payload, timeout=30)
+        if resp.ok:
+            text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return text, sources
+        if resp.status_code == 503 and attempt < 2:
+            time.sleep(3)
+            continue
         error_data = resp.json() if resp.headers.get("content-type","").startswith("application/json") else {}
         code = error_data.get("error", {}).get("code", resp.status_code)
         message = error_data.get("error", {}).get("message", "Error desconocido")
         return f"__ERROR_{code}__: {message}", []
-    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return text, sources
+
+    return "__ERROR_503__: Google está saturado ahora mismo. Espera 1 minuto e inténtalo de nuevo.", []
 
 
 # ─── UI ────────────────────────────────────────────────────────────────────────
