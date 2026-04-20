@@ -158,6 +158,28 @@ def search_web(query: str, category_context: str = "") -> tuple[str, list]:
         return f"Error al buscar: {e}", []
 
 
+CANDIDATE_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-1.5-flash-8b",
+    "gemini-pro",
+]
+
+@st.cache_data(ttl=3600)
+def get_working_model(api_key: str) -> str:
+    for model in CANDIDATE_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
+        try:
+            r = requests.post(url, json={"contents": [{"parts": [{"text": "hola"}]}]}, timeout=10)
+            if r.ok:
+                return model
+        except Exception:
+            continue
+    return None
+
+
 def analyze(question: str, category: str, api_key: str) -> tuple[str, list]:
     context, sources = search_web(question, CATEGORIES.get(category, ""))
 
@@ -182,7 +204,11 @@ INSTRUCCIONES:
 - No digas "según mis datos" ni "como IA" — habla con autoridad directa
 - Si la pregunta tiene implicación geopolítica, analiza también el impacto en España y Europa"""
 
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    model = get_working_model(api_key)
+    if not model:
+        return "__ERROR_404__: No se encontró ningún modelo disponible con esta API Key. Revisa que la key sea válida en aistudio.google.com", []
+
+    url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = requests.post(url, json=payload, timeout=30)
     if not resp.ok:
