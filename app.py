@@ -185,7 +185,8 @@ INSTRUCCIONES:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = requests.post(url, json=payload, timeout=30)
-    resp.raise_for_status()
+    if not resp.ok:
+        raise ValueError(f"Error {resp.status_code}: {resp.text}")
     text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     return text, sources
 
