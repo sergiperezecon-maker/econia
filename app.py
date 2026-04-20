@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 from duckduckgo_search import DDGS
 import os
 from datetime import date
@@ -161,9 +161,6 @@ def search_web(query: str, category_context: str = "") -> tuple[str, list]:
 def analyze(question: str, category: str, api_key: str) -> tuple[str, list]:
     context, sources = search_web(question, CATEGORIES.get(category, ""))
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-
     prompt = f"""Eres EconIA, un analista económico y geopolítico de élite.
 Respondes en español, con claridad y precisión. Tu estilo es directo, sin rodeos, con autoridad.
 No eres una IA genérica — eres un experto que habla como si explicara algo importante a alguien inteligente.
@@ -185,8 +182,12 @@ INSTRUCCIONES:
 - No digas "según mis datos" ni "como IA" — habla con autoridad directa
 - Si la pregunta tiene implicación geopolítica, analiza también el impacto en España y Europa"""
 
-    response = model.generate_content(prompt)
-    return response.text, sources
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    return text, sources
 
 
 # ─── UI ────────────────────────────────────────────────────────────────────────
