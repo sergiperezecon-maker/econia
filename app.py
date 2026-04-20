@@ -162,7 +162,7 @@ def analyze(question: str, category: str, api_key: str) -> tuple[str, list]:
     context, sources = search_web(question, CATEGORIES.get(category, ""))
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""Eres EconIA, un analista económico y geopolítico de élite.
 Respondes en español, con claridad y precisión. Tu estilo es directo, sin rodeos, con autoridad.
