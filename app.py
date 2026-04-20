@@ -186,7 +186,10 @@ INSTRUCCIONES:
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = requests.post(url, json=payload, timeout=30)
     if not resp.ok:
-        raise ValueError(f"Error {resp.status_code}: {resp.text}")
+        error_data = resp.json() if resp.headers.get("content-type","").startswith("application/json") else {}
+        code = error_data.get("error", {}).get("code", resp.status_code)
+        message = error_data.get("error", {}).get("message", "Error desconocido")
+        return f"__ERROR_{code}__: {message}", []
     text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     return text, sources
 
@@ -262,11 +265,13 @@ if ask_button:
         with st.spinner("Analizando datos en tiempo real..."):
             result, sources = analyze(question.strip(), category, api_key)
 
-        if not st.session_state.is_premium:
-            st.session_state.query_count += 1
-
-        st.session_state.last_result = result
-        st.session_state.last_sources = sources
+        if result.startswith("__ERROR_"):
+            st.error(result.replace("__ERROR_", "Error "))
+        else:
+            if not st.session_state.is_premium:
+                st.session_state.query_count += 1
+            st.session_state.last_result = result
+            st.session_state.last_sources = sources
 
 # Show result
 if st.session_state.last_result:
