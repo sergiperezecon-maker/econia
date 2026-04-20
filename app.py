@@ -158,25 +158,27 @@ def search_web(query: str, category_context: str = "") -> tuple[str, list]:
         return f"Error al buscar: {e}", []
 
 
-CANDIDATE_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-1.5-flash-8b",
-    "gemini-pro",
-]
-
 @st.cache_data(ttl=3600)
 def get_working_model(api_key: str) -> str:
-    for model in CANDIDATE_MODELS:
-        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
-        try:
-            r = requests.post(url, json={"contents": [{"parts": [{"text": "hola"}]}]}, timeout=10)
-            if r.ok:
-                return model
-        except Exception:
-            continue
+    # Pregunta a Google qué modelos están disponibles con esta key
+    list_url = f"https://generativelanguage.googleapis.com/v1/models?key={api_key}"
+    try:
+        r = requests.get(list_url, timeout=10)
+        if r.ok:
+            models = r.json().get("models", [])
+            for m in models:
+                supported = m.get("supportedGenerationMethods", [])
+                name = m.get("name", "")  # formato: "models/gemini-xxx"
+                if "generateContent" in supported and "flash" in name.lower():
+                    return name.replace("models/", "")
+            # Si no hay flash, toma el primero que soporte generateContent
+            for m in models:
+                supported = m.get("supportedGenerationMethods", [])
+                name = m.get("name", "")
+                if "generateContent" in supported:
+                    return name.replace("models/", "")
+    except Exception:
+        pass
     return None
 
 
