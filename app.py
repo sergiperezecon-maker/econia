@@ -182,7 +182,7 @@ INSTRUCCIONES:
 - No digas "según mis datos" ni "como IA" — habla con autoridad directa
 - Si la pregunta tiene implicación geopolítica, analiza también el impacto en España y Europa"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     resp = requests.post(url, json=payload, timeout=30)
     if not resp.ok:
